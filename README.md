@@ -12,18 +12,26 @@ Here we propose AniPortrait, a novel framework for generating high-quality anima
 audio and a reference portrait image. You can also provide a video to achieve face reenacment.
 
 <a href='https://arxiv.org/abs/2403.17694'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a>
+<a href='https://huggingface.co/ZJYang/AniPortrait/tree/main'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Model-orange'></a>
+<a href='https://huggingface.co/spaces/ZJYang/AniPortrait_official'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-green'></a>
 
 ## Pipeline
 
 ![pipeline](asset/pipeline.png)
 
-## TODO List
+## Updates / TODO List
 
-- [x] Now our paper is available on arXiv.
+- ✅ [2024/03/27] Now our paper is available on arXiv.
 
-- [x] Update the code to generate pose_temp.npy for head pose control.
+- ✅ [2024/03/27] Update the code to generate pose_temp.npy for head pose control.
 
-- [ ] We will release audio2pose pre-trained weight for audio2video after futher optimization. You can choose head pose template in `./configs/inference/head_pose_temp` as substitution.
+- ✅ [2024/04/02] Update a new pose retarget strategy for vid2vid. Now we support substantial pose difference between ref_image and source video.
+
+- ✅ [2024/04/03] We release our Gradio [demo](https://huggingface.co/spaces/ZJYang/AniPortrait_official) on HuggingFace Spaces (thanks to the HF team for their free GPU support)!
+
+- ✅ [2024/04/07] Update a frame interpolation module to accelerate the inference process. Now you can add -acc in inference commands to get a faster video generation.
+
+- ✅ [2024/04/21] We have released the audio2pose model and [pre-trained weight](https://huggingface.co/ZJYang/AniPortrait/tree/main) for audio2video. Please update the code and download the weight file to experience.
 
 ## Various Generated Videos
 
@@ -45,13 +53,15 @@ audio and a reference portrait image. You can also provide a video to achieve fa
 <table class="center">
 <tr>
     <td width=50% style="border: none">
-        <video controls autoplay loop src="https://github.com/Zejun-Yang/AniPortrait/assets/21038147/849fce22-0db1-4257-a75f-a5dc655e6b9e" muted="false"></video>
+        <video controls autoplay loop src="https://github.com/Zejun-Yang/AniPortrait/assets/21038147/d4e0add6-20a2-4f4b-808c-530a6f4d3331" muted="false"></video>
     </td>
     <td width=50% style="border: none">
-        <video controls autoplay loop src="https://github.com/Zejun-Yang/AniPortrait/assets/21038147/d4e0add6-20a2-4f4b-808c-530a6f4d3331" muted="false"></video>
+        <video controls autoplay loop src="https://github.com/Zejun-Yang/AniPortrait/assets/21038147/849fce22-0db1-4257-a75f-a5dc655e6b9e" muted="false"></video>
     </td>
 </tr>
 </table>
+
+Video Source: [鹿火CAVY from bilibili](https://www.bilibili.com/video/BV1H4421F7dE/?spm_id_from=333.337.search-card.all.click)
 
 ### Audio driven
 
@@ -89,7 +99,7 @@ pip install -r requirements.txt
 
 All the weights should be placed under the `./pretrained_weights` direcotry. You can download weights manually as follows:
 
-1. Download our trained [weights](https://huggingface.co/ZJYang/AniPortrait/tree/main), which include four parts: `denoising_unet.pth`, `reference_unet.pth`, `pose_guider.pth`, `motion_module.pth` and `audio2mesh.pt`.
+1. Download our trained [weights](https://huggingface.co/ZJYang/AniPortrait/tree/main), which include the following parts: `denoising_unet.pth`, `reference_unet.pth`, `pose_guider.pth`, `motion_module.pth`, `audio2mesh.pt`, `audio2pose.pt` and `film_net_fp16.pt`. 
 
 2. Download pretrained weight of based models and other components: 
     - [StableDiffusion V1.5](https://huggingface.co/runwayml/stable-diffusion-v1-5)
@@ -126,7 +136,9 @@ Finally, these weights should be orgnized as follows:
 |   |-- tokenizer_config.json
 |   `-- vocab.json
 |-- audio2mesh.pt
+|-- audio2pose.pt
 |-- denoising_unet.pth
+|-- film_net_fp16.pt
 |-- motion_module.pth
 |-- pose_guider.pth
 `-- reference_unet.pth
@@ -134,16 +146,28 @@ Finally, these weights should be orgnized as follows:
 
 Note: If you have installed some of the pretrained models, such as `StableDiffusion V1.5`, you can specify their paths in the config file (e.g. `./config/prompts/animation.yaml`).
 
+
+## Gradio Web UI
+
+You can try out our web demo by the following command. We alse provide online demo <a href='https://huggingface.co/spaces/ZJYang/AniPortrait_official'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-green'></a> in Huggingface Spaces.
+
+
+```shell
+python -m scripts.app
+```
+
 ## Inference
 
-Here are the cli commands for running inference scripts:
+Kindly note that you can set -L to the desired number of generating frames in the command, for example, `-L 300`.
 
-**Kindly note that you can set -L to the desired number of generating frames in the command, for example, -L 300.**
+**Acceleration method**: If it takes long time to generate a video, you can download [film_net_fp16.pt](https://huggingface.co/ZJYang/AniPortrait/tree/main) and put it under the `./pretrained_weights` direcotry. Then add `-acc` in the command.
+
+Here are the cli commands for running inference scripts:
 
 ### Self driven
 
 ```shell
-python -m scripts.pose2vid --config ./configs/prompts/animation.yaml -W 512 -H 512
+python -m scripts.pose2vid --config ./configs/prompts/animation.yaml -W 512 -H 512 -acc
 ```
 
 You can refer the format of animation.yaml to add your own reference images or pose videos. To convert the raw video into a pose video (keypoint sequence), you can run with the following command:
@@ -155,7 +179,7 @@ python -m scripts.vid2pose --video_path pose_video_path.mp4
 ### Face reenacment
 
 ```shell
-python -m scripts.vid2vid --config ./configs/prompts/animation_facereenac.yaml -W 512 -H 512
+python -m scripts.vid2vid --config ./configs/prompts/animation_facereenac.yaml -W 512 -H 512 -acc
 ```
 
 Add source face videos and reference images in the animation_facereenac.yaml.
@@ -163,12 +187,14 @@ Add source face videos and reference images in the animation_facereenac.yaml.
 ### Audio driven
 
 ```shell
-python -m scripts.audio2vid --config ./configs/prompts/animation_audio.yaml -W 512 -H 512
+python -m scripts.audio2vid --config ./configs/prompts/animation_audio.yaml -W 512 -H 512 -acc
 ```
 
 Add audios and reference images in the animation_audio.yaml.
 
-You can use this command to generate a pose_temp.npy for head pose control:
+Delete `pose_temp` in `./configs/prompts/animation_audio.yaml` can enable the audio2pose model.
+
+You can also use this command to generate a pose_temp.npy for head pose control:
 
 ```shell
 python -m scripts.generate_ref_pose --ref_video ./configs/inference/head_pose_temp/pose_ref_video.mp4 --save_path ./configs/inference/head_pose_temp/pose.npy
